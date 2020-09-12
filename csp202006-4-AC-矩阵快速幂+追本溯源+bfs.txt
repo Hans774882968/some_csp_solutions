@@ -1,0 +1,76 @@
+9
+2
+9
+4
+9
+6
+//9：8 5 13 19
+15：205 120 354 490 0 0 0 205 0 0 0 120 171 20 58 105 33 100 296 60
+100分做法参考了这个神仙https://blog.csdn.net/qq_43600766/article/details/107720406
+96分：
+矩阵快速幂，我们对1、2、4、6进行排列组合，看看“恰好出现1次”1、2、4、6、11、12（20种组合，由题已经有96分）……从
+i-1秒的组合怎么映射过来。比如：6映射出64，但66是不合法的因为它出现了2次64。66可以映射出46。巧合的是，只需要枚举所有
+长<=2的i-1秒的组合即可得到第i秒的组合。所以线性变换的矩阵如下：
+        m.m[ID(1)][ID(4)] = m.m[ID(2)][ID(1)] = m.m[ID(4)][ID(2)] = m.m[ID(4)][ID(6)] = m.m[ID(6)][ID(4)] = m.m[ID(6)][ID(6)] = 1;
+        m.m[ID(1,6)][ID(4)] = m.m[ID(2,1)][ID(1,4)] = m.m[ID(2,2)][ID(1,1)] = m.m[ID(2,4)][ID(1,2)] = m.m[ID(2,6)][ID(1,6)] = \
+        m.m[ID(4,1)][ID(2,4)] = m.m[ID(4,1)][ID(6,4)] = \
+        m.m[ID(4,2)][ID(2,1)] = m.m[ID(4,2)][ID(6,1)] = \
+        m.m[ID(4,4)][ID(2,2)] = m.m[ID(4,4)][ID(6,2)] = \
+        m.m[ID(4,6)][ID(2,6)] = m.m[ID(4,6)][ID(6,6)] = \
+        m.m[ID(6,1)][ID(4,4)] = \
+        m.m[ID(6,2)][ID(4,1)] = m.m[ID(6,4)][ID(6)] = m.m[ID(6,4)][ID(4,2)] = \
+        m.m[ID(6,6)][ID(4,6)] = 1;
+初始向量：
+        bas.m[ID(1)][0] = 1;
+暴力对拍：
+void bf(){
+    string s = "1";
+    rep(_,1,n){
+        string s1 = "";
+        rep(i,0,s.length() - 1){
+            if(s[i] == '1') s1 += "2";
+            if(s[i] == '2') s1 += "4";
+            if(s[i] == '4') s1 += "16";
+            if(s[i] == '6') s1 += "64";
+        }
+        s = s1;
+    }
+    int res[M];memset(res,0,sizeof res);
+    rep(i,0,s.length() - 1) res[ID(s[i] - '0')]++;
+    rep(i,0,s.length() - 2) res[ID(s[i] - '0',s[i + 1] - '0')]++;
+    rep(i,0,M - 6){cout << res[i] << " ";}
+    puts("");
+}
+
+生成转移矩阵的代码：
+Mat getM(){
+    Mat m;
+    string nums = "1246";
+    map<string,string> trans_map;
+    rep(i,0,3){
+        rep(j,-1,3){
+            string tmp;
+            if(~j) tmp = to_string(nums[i] - '0') + to_string(nums[j] - '0');
+            else tmp = to_string(nums[i] - '0');
+            trans_map[tmp] = getson(tmp);
+        }
+    }
+    for(auto x: trans_map){
+        if(x.first.size() == 1){
+            rep(i,0,x.second.size() - 1)
+                m.m[ID(x.second[i] - '0')][ID(x.first)] = 1;
+        }
+        rep(i,0,(int)(x.second.size()) - 2){
+            string sub = x.second.substr(i,2);
+            int idx = trans_map[to_string(x.first[0] - '0')].size();
+            if(x.first.size() > 1 && i != idx - 1) continue;//x.first.size() > 1时，只有跨区间的才可行
+            m.m[ID(sub)][ID(x.first)] = 1;
+        }
+    }
+    return m;
+}
+
+100分：bfs，每次寻找当前向上查找到的每个祖先串的fa，并且深度减1。以串空表示这个祖先不合法，长度<=2时调用上述矩阵
+快速幂的方法（长度<=1时才调用会被出题人卡掉！并且记得求解了该分支就结束，就不用再找祖先！）。这个原理我的理解是
+若干级祖先就是输入串的一个“代表”（浓缩就是精华~）。搜索方法找齐这些代表，并求这些代表各能在其深度出现多少次，求和即可。
+也可以理解成枚举了输入串可能的“生成方式”或者说是“源头”。但是还不知道怎么证明它不重不漏……

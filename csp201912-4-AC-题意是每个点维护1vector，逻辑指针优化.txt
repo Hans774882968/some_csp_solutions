@@ -1,0 +1,193 @@
+5 10
+1 2
+1 3
+1 4
+1 5
+2 3
+2 4
+2 5
+3 4
+3 5
+4 5
+1 27
+1 1 1
+2 1 2
+3 1 3
+4 1 4
+5 1 5
+1 1
+2 1
+3 1
+4 1
+5 1
+1 2
+2 2
+3 2
+4 2
+5 2
+1 10 10
+2 11 9
+1 11
+2 11
+3 11
+4 11
+5 11
+1 12
+2 12
+3 12
+4 12
+5 12
+//
+15 13
+1 2
+2 3
+3 4
+4 5
+1 6
+6 7
+7 8
+8 9
+1 10
+10 11
+11 12
+12 13
+14 15
+6 28
+1 1 1
+1 2 2
+1 6
+2 7
+13 7
+9 7
+5 7
+3 14
+8 14
+5 14
+11 14
+9 25
+5 25
+13 25
+9 29 3
+5 29 4
+13 29 5
+1 53
+2 59 6
+2 59
+1 1000
+3 1000
+8 1000
+9 1000
+10 1000
+13 1000
+14 1000
+15 1000
+题意：每个点维护1vector，vector最初都只放了0。接下来给定2种操作，一种有3个数，表示节点a的vector在时间b插入数字c。另一
+种有2个数，表示查询节点a的vector在时间b长啥样。规定点u的vector在时间t被修改，都要在时间t+T触发“u的相邻节点决定是否
+根据u的vector更新自己”这个事件，规则见原题，而原题的图只是给出了u应该更新的那些节点。如果事件触发时间和插入时间相同，
+那么先处理事件再执行插入。
+原题里的“链”就是vector，“块”就是vector的一个元素。
+解析：
+0、原题的操作是时间升序的，不需要离线算法，直接把输入的b当作现在的时间即可。还是很良心的……
+1、这个输入都要恶心你一下，用sstream来搞，一个while(ss >> 被输入的)即可。
+2、原题里面当然是没有“事件”这种很明示的词呀~但是我点出来了，毕竟是题解，要让人看了就直呼“此题水题也”。原题里面的
+更新操作，以及“先接收链再产生新块”，如果学过js的setTimeout，就能很快联想到这个事件队列的算法。原题所有传输延迟T（即
+原图的边权）都一样，所以可以不用pq（否则必须用pq）。不过如果没有3的优化，不管用不用pq都是60分。
+3、逻辑指针优化。原题一个坑是“必须是当时的u去更新v”，而非现在的u。如果维护一个vector<int> blk[SZ];那么只能知道现在的
+u的链长啥样，于是被迫在事件队列里存所有快照。这就会TLE了……这里我们采用一个数字（名叫“逻辑指针”）指向“链的字典”
+vector<vector<int>> h的下标，来求出每个点的链长啥样。而hptr[SZ];表示每个点现在的链。据此，vector<int> blk[SZ];可以
+抛弃掉，而事件队列的结构体：
+struct Event{
+    int t,to;vector<int> snapshot;
+    bool operator < (const Event &rh) const {
+        return t > rh.t;
+    }
+};
+那个snapshot也可以改成逻辑指针。
+代码：
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <string>
+#include <ctime>
+#include <vector>
+#include <cmath>
+#include <queue>
+#include <map>
+#include <sstream>
+#include <set>
+#include <algorithm>
+//#include <bits/stdc++.h>
+using namespace std;
+typedef long long LL;
+#define rep(i,a,b) for(int i = (a);i <= (b);++i)
+const int SZ = 500 + 5;
+
+int n,m,T,k;
+vector<int> G[SZ];
+vector<vector<int> > h;int hptr[SZ];
+struct Event{int t,to,hidx;};
+queue<Event> q;
+
+template<typename Type>inline void read(Type &xx){
+    Type f = 1;char ch;xx = 0;
+    for(ch = getchar();ch < '0' || ch > '9';ch = getchar()) if(ch == '-') f = -1;
+    for(;ch >= '0' && ch <= '9';ch = getchar()) xx = xx * 10 + ch - '0';
+    xx *= f;
+}
+
+bool modify(int v,int hidx){
+    if(h[hptr[v]].size() < h[hidx].size() || (h[hptr[v]].size() == h[hidx].size() && h[hptr[v]].back() > h[hidx].back())){
+        hptr[v] = hidx;
+        return true;
+    }
+    return false;
+}
+
+void show_blk(int u){
+    printf("%d",h[hptr[u]].size());
+    for(int v: h[hptr[u]]) printf(" %d",v);
+    puts("");
+}
+
+void event_update(int tim){
+    while(!q.empty() && q.front().t <= tim){
+        Event ev = q.front();q.pop();int u = ev.to;
+        bool fl = modify(u,ev.hidx);
+        if(fl){
+            for(int v: G[u]) q.push({ev.t + T,v,hptr[u]});//更新后必须创建事件
+        }
+    }
+}
+
+int main(int argc, char** argv) {
+    read(n);read(m);
+    rep(i,1,m){
+        int p1,p2;read(p1);read(p2);
+        G[p1].push_back(p2);
+        G[p2].push_back(p1);
+    }
+    read(T);read(k);
+    h.push_back(vector<int>(1,0));
+    rep(i,1,n) hptr[i] = 0;
+    while(k--){
+        int x[4];x[0] = 0;
+        char s[50];fgets(s,50,stdin);s[strlen(s) - 1] = '\0';
+        stringstream ss(s);
+        while(ss >> x[++x[0]]);
+        int u = x[1],tim = x[2],c = x[3];
+        if((--x[0]) == 3){
+            event_update(tim);
+            vector<int> blk = h[hptr[u]];
+            blk.push_back(c);
+            h.push_back(blk);
+            hptr[u] = h.size() - 1;
+            for(int v: G[u]) q.push({tim + T,v,hptr[u]});
+        }
+        else{
+            event_update(tim);
+            show_blk(u);
+        }
+    }
+    getchar();getchar();
+    return 0;
+}
