@@ -1,0 +1,67 @@
+16 15
+{
+    "firstName": "John",
+    "lastName": "Smith",
+    "address": {
+        "streetAddress": "2ndStreet",
+        "city": "NewYork",
+        "state": "NY",
+        "\"": "\\\\\\\\",
+        "\\\\\\\\" : {
+            "esc\\aped":"\"\"hello\"\"",
+            "\\||":"||\\",
+            "\\\"": "\"\\"
+        }
+    },
+    "esc\\aped": "\"hello\""
+}
+esc\aped
+address."
+address.\\\\
+address.\\\\.esc\aped
+address.\\\\.\||
+address.\\\\.\"
+//最后一个是："\
+
+5 5
+{
+    "233n": "234",
+    ";;": {"ss": "sss"},
+    "\\":"\""
+}
+
+14 10
+{
+"firstName": "John",
+"lastName": "Smith",
+"address": {
+    "streetAddress": "2ndStreet",
+    "city": "NewYork",
+    "state": "NY",
+    "fucking": {
+        "xx": "yy",
+        "xxx": "\""
+    }
+},
+    "esc\\aped": "\"hello\""
+}
+firstName
+address
+address.city
+address.postal
+esc\aped
+firstName
+address.fucking.xxx
+address.fucking
+address.fucking.xx
+
+ps：虽然1发AC，但是当时图省事自己实现的replaceAll居然是有bug的……当然现在已经改正了。另外，这个题我的代码有点小bug，
+在csp的测试数据里有一个样例会assert失败（虽然去掉assert也能AC）。暂时不知道原因了。
+
+思路就是parse，并把键值对写入map<string,string>。然后处理查询有个小技巧，就是在parse的时候顺便拼接好所有的点，在递归的
+时候带上prefixs参数。这样就可以直接在上述全局map查找了。parse的套路十分简单，里面若干assert也提供了直观的提示。
+我认为唯一难的点，就是advance的时候要知道字符串的边界在哪里。我查看了若干开源代码，有的是采用我代码里所注释的写法，那
+个显然是有bug产生的。有的是采用了和我一样的提前看2位，把冒号逗号当作分割符的写法，这个写法也会有bug，比如：
+"\":"和"\\\\\"\":"。如果尝试先把转义的反斜杠给去掉，似乎也只会让这个难点更难……
+要彻底避开这些有bug的写法，只能先解决一个子问题：每个反斜杠分别和谁匹配。我真的不会这个啊QAQ我好菜啊好蒻啊555。
+留作思考题：求大神告诉我发明json的人是怎么判断字符串的边界的QAQ（划掉）
